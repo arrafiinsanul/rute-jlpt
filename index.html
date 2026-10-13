@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rute JLPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+html,body{margin:0}[hidden]{display:none!important}
+
+/* Layout: study notebook — header strip, tab bar, then a genkouyoushi-style 30-square grid where finished days get a 済 hanko stamp */
+:root{
+  --paper:#F2F4F8; --surface:#FFFFFF; --ink:#1A2140; --muted:#58617F; --line:#D6DBE8;
+  --ai:#2C4192; --ai-soft:#E4E9F7; --shu:#C23A2C; --good:#2E7A57;
+  --f-display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",Georgia,serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F1328; --surface:#161B35; --ink:#E5E8F4; --muted:#9AA2C2; --line:#2B3257;
+  --ai:#93A6F2; --ai-soft:#222B55; --shu:#E5644F; --good:#5FBD8F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0F1328; --surface:#161B35; --ink:#E5E8F4; --muted:#9AA2C2; --line:#2B3257;
+  --ai:#93A6F2; --ai-soft:#222B55; --shu:#E5644F; --good:#5FBD8F; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;padding:0 16px}
+a{color:var(--ai);text-underline-offset:3px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--ai);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding-block:28px 64px;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.25}
+h2{font-size:1.45rem}
+h3{font-size:1.08rem}
+p{margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.muted{color:var(--muted)}
+
+/* header */
+header{display:flex;flex-wrap:wrap;gap:20px 32px;align-items:flex-end;justify-content:space-between}
+.brand{display:flex;flex-direction:column;gap:4px}
+.brand h1{font-size:clamp(2rem,5vw,2.8rem);font-weight:800;letter-spacing:-.01em}
+.brand h1 span{color:var(--shu)}
+.stats{display:flex;flex-wrap:wrap;gap:10px 28px}
+.stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat b{font-family:var(--f-mono);font-size:1.6rem;font-weight:500;line-height:1.1}
+.stat small{font-size:.78rem;color:var(--muted)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ai);width:0;transition:width .4s}
+
+/* tabs */
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line);display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{font:inherit;font-weight:500;background:none;border:0;color:var(--muted);padding:12px 12px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--shu)}
+section.panel{display:flex;flex-direction:column;gap:22px}
+
+/* card */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+
+/* day card */
+.dayhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.dayhead h2{font-size:1.6rem}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.06em;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pill.kana{color:var(--muted)}
+.pill.n5,.pill.n4{color:var(--ai);border-color:var(--ai)}
+.pill.test{color:var(--shu);border-color:var(--shu)}
+.pill.review{color:var(--good);border-color:var(--good)}
+.daynav{display:flex;gap:6px}
+.btn{font:inherit;font-size:.88rem;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--ai)}
+.btn.primary{background:var(--ai);color:var(--surface);border-color:var(--ai)}
+.btn:disabled{opacity:.4;cursor:default}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px}
+.kv dt{color:var(--muted);font-size:.85rem}
+.kv dd{margin:0;min-width:0}
+.kanji{display:flex;flex-wrap:wrap;gap:6px}
+.kanji a{font-family:var(--f-display);font-size:1.25rem;font-weight:600;text-decoration:none;color:var(--ink);width:2.2rem;height:2.2rem;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;background:linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat,linear-gradient(var(--line),var(--line)) center/100% 1px no-repeat}
+.kanji a:hover{border-color:var(--ai);color:var(--ai)}
+.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.tasks li{border-top:1px solid var(--line)}
+.tasks label{display:flex;gap:12px;align-items:flex-start;padding:10px 2px;cursor:pointer}
+.tasks input{width:18px;height:18px;margin-top:3px;accent-color:var(--ai);flex:none}
+.tasks .t-done span{color:var(--muted);text-decoration:line-through}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.links a{font-size:.86rem;border:1px solid var(--line);border-radius:6px;padding:4px 10px;text-decoration:none;background:var(--paper)}
+.links a:hover{border-color:var(--ai)}
+
+/* grid of days */
+.gridwrap{display:flex;flex-direction:column;gap:12px}
+.days{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:0;border-top:1px solid var(--line);border-left:1px solid var(--line);background:var(--surface)}
+@media (max-width:620px){.days{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.cell{position:relative;aspect-ratio:1;max-width:100%;border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;cursor:pointer;padding:6px;text-align:left;display:flex;flex-direction:column;justify-content:space-between}
+.cell:hover{background:var(--ai-soft)}
+.cell .n{font-family:var(--f-mono);font-size:.82rem;color:var(--muted)}
+.cell .ph{font-size:.62rem;letter-spacing:.06em;font-weight:700;color:var(--muted)}
+.cell.test .ph{color:var(--shu)}
+.cell.sel{background:var(--ai-soft)}
+.cell.today{box-shadow:inset 0 0 0 2px var(--ai)}
+.cell.today .n{color:var(--ai);font-weight:700}
+.stamp{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.stamp span{font-family:var(--f-display);font-weight:800;color:var(--shu);border:2px solid var(--shu);border-radius:50%;width:58%;aspect-ratio:1;display:grid;place-items:center;font-size:clamp(.8rem,2.3vw,1.25rem);transform:rotate(-12deg);opacity:.88}
+.partial{position:absolute;left:6px;right:6px;bottom:4px;height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.partial i{display:block;height:100%;background:var(--ai)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.8rem;color:var(--muted)}
+
+/* tables */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+details summary{cursor:pointer;font-weight:700}
+details[open] summary{margin-bottom:10px}
+
+/* materials */
+.mats{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.mat{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.mat li{padding:10px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.mat .tag{font-size:.7rem;font-weight:700;letter-spacing:.06em;color:var(--good)}
+.mat .tag.paid{color:var(--muted)}
+
+/* levels */
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}
+.lv h3{display:flex;align-items:baseline;gap:10px}
+.lv h3 .big{font-family:var(--f-mono);font-size:2rem;color:var(--ai)}
+.lv ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.path{display:flex;flex-wrap:wrap;gap:0;align-items:stretch;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.path div{flex:1 1 130px;padding:12px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px;min-width:0}
+.path div:last-child{border-right:0}
+.path b{font-family:var(--f-display);font-size:1.15rem}
+
+/* error log */
+form.err{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+@media (max-width:720px){form.err{grid-template-columns:1fr}}
+form.err label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted);min-width:0}
+input[type=text],input[type=date],textarea,select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:44px}
+.errlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.errlist li{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;padding:12px 0;border-top:1px solid var(--line);align-items:start}
+@media (max-width:620px){.errlist li{grid-template-columns:1fr}}
+.errlist .q{font-weight:500}
+.errlist .a{color:var(--good)}
+.errlist small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:.74rem}
+.x{font:inherit;font-size:.8rem;background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;justify-self:start}
+.x:hover{color:var(--shu);border-color:var(--shu)}
+.empty{color:var(--muted);padding:12px 0}
+
+.sync{font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.sync.on::before{background:var(--good)}
+.startrow{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:.85rem;color:var(--muted)}
+.startrow input{width:auto}
+footer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="eyebrow">N5 → N4 · 30 hari · lanjut ke N1</span>
+      <h1>Rute JLPT <span>道</span></h1>
+      <span class="sync" id="sync">Tersimpan di perangkat ini</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="sDay">1</b><small>hari ke- (dari 30)</small></div>
+      <div class="stat"><b id="sDone">0</b><small>hari selesai</small></div>
+      <div class="stat"><b id="sExam">–</b><small>hari ke JLPT 4 Jul 2027*</small></div>
+    </div>
+  </header>
+  <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+
+  <nav class="tabs" role="tablist" aria-label="Bagian">
+    <button role="tab" data-tab="belajar" aria-selected="true">Belajar</button>
+    <button role="tab" data-tab="materi" aria-selected="false">Materi</button>
+    <button role="tab" data-tab="kesalahan" aria-selected="false">Buku kesalahan</button>
+    <button role="tab" data-tab="ujian" aria-selected="false">Info ujian</button>
+    <button role="tab" data-tab="lanjut" aria-selected="false">N3 · N2 · N1</button>
+  </nav>
+
+  <!-- BELAJAR -->
+  <section class="panel" id="belajar">
+    <div class="two">
+      <article class="card" id="dayCard" aria-live="polite"></article>
+      <div class="card gridwrap">
+        <div class="dayhead">
+          <h3>30 hari</h3>
+          <div class="startrow"><label for="start">Mulai</label><input type="date" id="start"></div>
+        </div>
+        <div class="days" id="days"></div>
+        <div class="legend"><span>済 = semua tugas hari itu selesai</span><span>Kotak biru = hari ini</span><span>Garis = sebagian selesai</span></div>
+      </div>
+    </div>
+    <details class="card">
+      <summary>Jadwal harian (± 6 jam)</summary>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Blok</th><th>Durasi</th><th>Isi</th></tr></thead>
+        <tbody>
+          <tr><td>Pagi 1</td><td class="num">60 mnt</td><td>Anki: semua review dulu, lalu 35 kartu baru</td></tr>
+          <tr><td>Pagi 2</td><td class="num">90 mnt</td><td>Tata bahasa: baca, latihan, tulis 5 kalimat per pola</td></tr>
+          <tr><td>Siang 1</td><td class="num">45 mnt</td><td>Kanji hari itu: arti, bacaan di kata umum, tulis 3–5 kali</td></tr>
+          <tr><td>Siang 2</td><td class="num">60 mnt</td><td>Listening: audio bab + shadowing; minggu 2+ audio resmi JLPT</td></tr>
+          <tr><td>Sore</td><td class="num">45 mnt</td><td>Membaca: bacaan di buku, NHK Easy mulai minggu 3</td></tr>
+          <tr><td>Malam 1</td><td class="num">30 mnt</td><td>Output: jurnal 5 kalimat atau bicara sendiri dengan pola baru</td></tr>
+          <tr><td>Malam 2</td><td class="num">15 mnt</td><td>Baca ulang buku kesalahan</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Hanya punya 3 jam? Kerjakan Anki, satu bab tata bahasa, dan listening saja, dan geser target menjadi N5 dalam 30 hari.</p>
+    </details>
+  </section>
+
+  <!-- MATERI -->
+  <section class="panel" id="materi" hidden>
+    <div class="mats" id="mats"></div>
+  </section>
+
+  <!-- KESALAHAN -->
+  <section class="panel" id="kesalahan" hidden>
+    <div class="card">
+      <h2>Buku kesalahan</h2>
+      <p class="muted">Catat setiap soal yang salah dari latihan atau tryout. Baca ulang setiap malam.</p>
+      <form class="err" id="errForm">
+        <label for="errQ">Soal / yang saya salah<textarea id="errQ" rows="2" required placeholder="mis. 本を___よみます (pilih partikel)"></textarea></label>
+        <label for="errA">Jawaban benar & alasannya<textarea id="errA" rows="2" required placeholder="を — objek langsung kata kerja"></textarea></label>
+        <button class="btn primary" type="submit">Simpan</button>
+      </form>
+      <ul class="errlist" id="errList"></ul>
+    </div>
+  </section>
+
+  <!-- UJIAN -->
+  <section class="panel" id="ujian" hidden>
+    <div class="card">
+      <h2>Format & skor lulus</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Hal</th><th>N5</th><th>N4</th></tr></thead>
+        <tbody>
+          <tr><td>Kosakata (moji-goi)</td><td class="num">20 mnt</td><td class="num">25 mnt</td></tr>
+          <tr><td>Tata bahasa + membaca</td><td class="num">40 mnt</td><td class="num">55 mnt</td></tr>
+          <tr><td>Mendengar</td><td class="num">30 mnt</td><td class="num">35 mnt</td></tr>
+          <tr><td>Skor lulus total</td><td class="num">80 / 180</td><td class="num">90 / 180</td></tr>
+          <tr><td>Minimum bahasa + membaca</td><td class="num">38 / 120</td><td class="num">38 / 120</td></tr>
+          <tr><td>Minimum mendengar</td><td class="num">19 / 60</td><td class="num">19 / 60</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Satu bagian di bawah minimum = gagal, walau total tinggi. Tidak ada pengurangan nilai untuk jawaban salah, jadi jangan kosongkan jawaban. Sumber: <a href="https://www.jlpt.jp/e/guideline/results.html" target="_blank" rel="noopener">jlpt.jp</a>.</p>
+    </div>
+    <div class="card">
+      <h2>Jadwal ujian</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Ujian</th><th>Tanggal</th><th>Status di Indonesia</th></tr></thead>
+        <tbody>
+          <tr><td>JLPT Desember 2026</td><td class="num">6 Des 2026</td><td>Pendaftaran sudah ditutup</td></tr>
+          <tr><td>JLPT Juli 2027</td><td class="num">4 Jul 2027*</td><td>Pendaftaran biasanya April (2026: 7–15 April); kuota cepat penuh</td></tr>
+          <tr><td>JFT-Basic (komputer)</td><td>sepanjang tahun</td><td>Pesan kursi lewat Prometric; skor 200+ = A2</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">*Perkiraan: JLPT selalu Minggu pertama Juli dan Desember. Pantau <a href="https://jlptonline.or.id" target="_blank" rel="noopener">jlptonline.or.id</a> mulai Maret 2027. Info JFT-Basic: <a href="https://www.jpf.go.jp/jft-basic/id/about/" target="_blank" rel="noopener">jpf.go.jp</a>.</p>
+    </div>
+    <div class="card">
+      <h2>Saat ujian</h2>
+      <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        <li>Kosakata cepat (± 30 detik per soal); sisakan ± 20 menit (N5) / ± 30 menit (N4) untuk bacaan.</li>
+        <li>Soal ★: susun keempat pilihan jadi kalimat utuh dulu, baru tentukan posisi bintang.</li>
+        <li>Membaca: baca pertanyaan dulu, baru cari jawabannya di teks.</li>
+        <li>Listening diputar sekali: baca pilihan sebelum audio, hitamkan jawaban langsung.</li>
+        <li>Bawa voucher, KTP/paspor, pensil HB, penghapus, jam biasa. Datang awal: terlambat setelah registrasi ditutup tidak boleh ikut sesi pertama.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- LANJUT -->
+  <section class="panel" id="lanjut" hidden>
+    <div class="card">
+      <h2>Rute setelah N4</h2>
+      <p class="muted">Perkiraan kasar dengan belajar 2–3 jam per hari. Jam belajar adalah total kumulatif yang dilaporkan pelajar tanpa latar kanji (data 2010–2015).</p>
+      <div class="path">
+        <div><span class="eyebrow">Jul 2027</span><b>N4</b><span class="muted">575–1.000 jam</span></div>
+        <div><span class="eyebrow">Des 2027 – Jul 2028</span><b>N3</b><span class="muted">950–1.700 jam</span></div>
+        <div><span class="eyebrow">2028 – 2029</span><b>N2</b><span class="muted">1.600–2.800 jam</span></div>
+        <div><span class="eyebrow">2030+</span><b>N1</b><span class="muted">3.000–4.800 jam</span></div>
+      </div>
+    </div>
+    <div class="levels" id="levels"></div>
+  </section>
+
+  <footer>Kemajuan tersimpan otomatis. Data jadwal & skor dari jlpt.jp dan jlptonline.or.id per Oktober 2026 — cek ulang sebelum mendaftar.</footer>
+</div>
+
+<script>
+(function(){
+const J='https://www.jlpt.jp/samples/';
+const pdf=(set,f)=>J+set+'/pdf/'+f+'.pdf';
+const mp3=(set,f)=>J+set+'/mp3/'+f+'.mp3';
+const jisho=k=>'https://jisho.org/search/'+encodeURIComponent(k+' #kanji');
+const L={
+  hira:['Tofugu: hiragana','https://www.tofugu.com/japanese/learn-hiragana/'],
+  kata:['Tofugu: katakana','https://www.tofugu.com/japanese/learn-katakana/'],
+  anki:['Unduh Anki','https://apps.ankiweb.net/'],
+  kaishi:['Deck Kaishi 1.5k','https://github.com/donkuri/kaishi'],
+  realkana:['Kuis kana (RealKana)','https://realkana.com/'],
+  samples:['Contoh soal per level (jlpt.jp)','https://www.jlpt.jp/e/samples/forlearners.html'],
+  nhk:['NHK News Web Easy','https://www3.nhk.or.jp/news/easy/'],
+  n4kanji:['Daftar kanji N4 (Jisho)','https://jisho.org/search/%23jlpt-n4%20%23kanji'],
+  taekim:['Tae Kim: penjelasan tata bahasa','https://guidetojapanese.org/learn/'],
+  daftar:['Pendaftaran JLPT Indonesia','https://jlptonline.or.id'],
+};
+const listen=(lv)=>[
+  ['Soal listening '+lv+' (PDF)',pdf('sample2012',lv+'L')],
+  ['Audio Q1',mp3('sample2012',lv+'Q1')],['Audio Q2',mp3('sample2017',lv+'Q2')],
+  ['Audio Q3',mp3('sample2012',lv+'Q3')],['Audio Q4',mp3('sample2012',lv+'Q4')],
+  ['Skrip',pdf('sample2012',lv+'script')]];
+const tryout=(lv)=>[
+  ['Kosakata (PDF)',pdf('sample2018',lv+'V')],['Tata bahasa (PDF)',pdf('sample2018',lv+'G')],
+  ['Membaca (PDF)',pdf('sample2018',lv+'R')],['Listening (PDF)',pdf('sample2018',lv+'L')],
+  ['Audio Q1',mp3('sample2018',lv+'Q1')],['Audio Q2',mp3('sample2018',lv+'Q2')],
+  ['Audio Q3',mp3('sample2018',lv+'Q3')],['Audio Q4',mp3('sample2018',lv+'Q4')],
+  ['Lembar jawaban',pdf('sample2018',lv+'sheet')],['Kunci jawaban',pdf('sample2018',lv+'answer')],
+  ['Skrip listening',pdf('sample2018',lv+'script')]];
+
+const DAYS=[
+ {p:'kana',g:'Hiragana + dakuten',x:'Install Anki dan pasang deck Kaishi 1.5k',l:[L.hira,L.anki,L.kaishi]},
+ {p:'kana',g:'Katakana',x:'Baca kata serapan (コーヒー, テレビ)',l:[L.kata]},
+ {p:'kana',g:'Review kana',x:'Tes kana harus 100% benar sebelum lanjut',l:[L.realkana]},
+ {p:'n5',g:'Minna no Nihongo bab 1–2',k:'一 二 三 四 五 六 七 八 九 十 百 千 万 円',x:'Mulai Anki 35 kartu baru per hari'},
+ {p:'n5',g:'Bab 3–4',k:'日 月 火 水 木 金 土 年',x:'Angka, jam, harga'},
+ {p:'n5',g:'Bab 5–6',k:'時 分 半 午 今 週 毎 何',x:'Hari dan tanggal'},
+ {p:'n5',g:'Bab 7–8',k:'人 男 女 子 父 母 友 名',x:'Review minggu 1'},
+ {p:'n5',g:'Bab 9–10',k:'上 下 中 外 右 左 前 後'},
+ {p:'n5',g:'Bab 11–12',k:'大 小 高 安 新 古 長 多 少',x:'Penghitung (つ, 人, 枚)'},
+ {p:'n5',g:'Bab 13–14',k:'山 川 天 気 雨 白',x:'Mulai bentuk て; latihan listening resmi N5',l:listen('N5')},
+ {p:'n5',g:'Bab 15–16',k:'東 西 南 北 国'},
+ {p:'n5',g:'Bab 17–18',k:'学 校 先 生 本 語',x:'Bentuk ない'},
+ {p:'n5',g:'Bab 19–20',k:'見 行 来 出 入 休',x:'Bentuk た dan bentuk kamus'},
+ {p:'n5',g:'Bab 21–22',k:'食 飲 買 書 読 聞 話 言',x:'Kerjakan contoh soal N5; review minggu 2',l:[L.samples]},
+ {p:'n5',g:'Bab 23–25',k:'立 会 電 車 社 店 駅 道',x:'Review semua pola N5'},
+ {p:'test',g:'Tryout N5 penuh (90 menit)',x:'Waktu asli: 20 + 40 + 30 menit. Target ≥ 100/180, listening ≥ 30/60',l:tryout('N5')},
+ {p:'n4',g:'Bab 26–27',k4:true,x:'Analisis semua kesalahan tryout ke buku kesalahan'},
+ {p:'n4',g:'Bab 28–29',k4:true},
+ {p:'n4',g:'Bab 30–31',k4:true,x:'Bentuk kehendak (～う／よう)'},
+ {p:'n4',g:'Bab 32–33',k4:true},
+ {p:'n4',g:'Bab 34–35',k4:true,x:'Review minggu 3; mulai baca 1 artikel NHK Easy per hari',l:[L.nhk]},
+ {p:'n4',g:'Bab 36–37',k4:true},
+ {p:'n4',g:'Bab 38–39',k4:true,x:'Latihan listening resmi N4',l:listen('N4')},
+ {p:'n4',g:'Bab 40–41',k4:true,x:'Memberi/menerima (あげる・くれる・もらう)'},
+ {p:'n4',g:'Bab 42–43',k4:true},
+ {p:'n4',g:'Bab 44–45',k4:true},
+ {p:'n4',g:'Bab 46–47',k4:true,x:'Pasif dan kausatif'},
+ {p:'n4',g:'Bab 48–50',k4:true,x:'Keigo dasar; review minggu 4'},
+ {p:'test',g:'Tryout N4 penuh (115 menit)',x:'Waktu asli: 25 + 55 + 35 menit. Catat semua kesalahan',l:tryout('N4')},
+ {p:'review',g:'Review buku kesalahan',x:'Susun rencana lanjutan menuju JLPT Juli 2027',l:[L.daftar]},
+];
+const PH={kana:'KANA',n5:'N5',n4:'N4',test:'TRYOUT',review:'REVIEW'};
+function tasksFor(i){
+  const d=DAYS[i];
+  if(d.p==='kana') return [d.g+' (tulis + baca)','Anki: latihan kana','Listening: dengar dan tirukan kana 20 menit','Baca kata-kata pendek tanpa romaji'];
+  if(d.p==='test') return ['Kerjakan '+d.g+' dengan timer','Cocokkan jawaban dan hitung skor per bagian','Catat semua kesalahan ke buku kesalahan','Anki: semua review'];
+  if(d.p==='review') return ['Baca ulang seluruh buku kesalahan','Ulangi pola tata bahasa yang masih lemah','Anki: semua review','Tulis rencana belajar bulan depan'];
+  return ['Anki: semua review + 35 kartu baru','Tata bahasa: '+d.g+' + 5 kalimat per pola',d.k4?'10 kanji N4 baru':'Kanji hari ini (tulis 3–5 kali)','Listening & shadowing 60 menit','Baca ulang buku kesalahan'];
+}
+
+/* ---------- state ---------- */
+const KEY='rute-jlpt-v1';
+let state={start:'2026-10-13',done:{},errors:[]};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s&&typeof s==='object') state=Object.assign(state,s);}catch(e){}
+let selected=null;
+let dbRef=null, writing=false, pending=false, timer=null;
+
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function persist(){
+  saveLocal();
+  if(!dbRef) return;
+  clearTimeout(timer); timer=setTimeout(flush,700);
+}
+async function flush(){
+  if(!dbRef) return;
+  if(writing){pending=true;return;}
+  writing=true;
+  try{await dbRef.set(JSON.parse(JSON.stringify(state)));}catch(e){}
+  writing=false;
+  if(pending){pending=false;flush();}
+}
+
+/* ---------- dates ---------- */
+function parseD(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function todayD(){const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate());}
+function currentDay(){
+  let s; try{s=parseD(state.start);}catch(e){return 1;}
+  if(isNaN(s)) return 1;
+  const diff=Math.floor((todayD()-s)/864e5)+1;
+  return Math.max(1,Math.min(30,diff));
+}
+
+/* ---------- render ---------- */
+const $=id=>document.getElementById(id);
+function dayStatus(i){
+  const t=tasksFor(i);let c=0;
+  t.forEach((_,j)=>{if(state.done['d'+(i+1)+'-'+j])c++;});
+  return {c,n:t.length,full:c===t.length};
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function renderStats(){
+  let full=0;for(let i=0;i<30;i++) if(dayStatus(i).full) full++;
+  $('sDay').textContent=currentDay();
+  $('sDone').textContent=full;
+  const exam=Math.ceil((new Date(2027,6,4)-todayD())/864e5);
+  $('sExam').textContent=exam>0?exam:'–';
+  $('bar').style.width=(full/30*100)+'%';
+}
+function renderGrid(){
+  const cur=currentDay();const sel=selected??cur;
+  let h='';
+  for(let i=0;i<30;i++){
+    const st=dayStatus(i),d=DAYS[i];
+    const cls=['cell',d.p==='test'?'test':'',i+1===cur?'today':'',i+1===sel?'sel':''].join(' ');
+    h+='<button class="'+cls+'" data-day="'+(i+1)+'" aria-label="Hari '+(i+1)+', '+st.c+' dari '+st.n+' tugas selesai"><span class="n">'+(i+1)+'</span><span class="ph">'+PH[d.p]+'</span>'+
+      (st.full?'<span class="stamp"><span>済</span></span>':(st.c?'<span class="partial"><i style="width:'+(st.c/st.n*100)+'%"></i></span>':''))+'</button>';
+  }
+  $('days').innerHTML=h;
+}
+function renderDay(){
+  const cur=currentDay();const n=selected??cur;const i=n-1;const d=DAYS[i];const t=tasksFor(i);
+  let kanji='';
+  if(d.k) kanji='<div class="kanji">'+d.k.split(' ').map(k=>'<a href="'+jisho(k)+'" target="_blank" rel="noopener" title="Buka '+k+' di Jisho">'+k+'</a>').join('')+'</div>';
+  else if(d.k4) kanji='<a href="'+L.n4kanji[1]+'" target="_blank" rel="noopener">10 kanji berikutnya dari daftar N4 (Jisho)</a>';
+  else kanji='<span class="muted">–</span>';
+  const links=(d.l||[]).map(a=>'<a href="'+a[1]+'" target="_blank" rel="noopener">'+esc(a[0])+'</a>').join('');
+  $('dayCard').innerHTML=
+   '<div class="dayhead"><div style="display:flex;flex-direction:column;gap:6px"><span class="eyebrow">'+(n===cur?'Hari ini':'Hari '+n)+'</span><h2>Hari '+n+'</h2><span class="pill '+d.p+'">'+PH[d.p]+'</span></div>'+
+   '<div class="daynav"><button class="btn" id="prev" '+(n<=1?'disabled':'')+' aria-label="Hari sebelumnya">‹</button>'+
+   (n!==cur?'<button class="btn" id="goToday">Hari ini</button>':'')+
+   '<button class="btn" id="next" '+(n>=30?'disabled':'')+' aria-label="Hari berikutnya">›</button></div></div>'+
+   '<dl class="kv"><dt>Materi utama</dt><dd>'+esc(d.g)+'</dd><dt>Kanji</dt><dd>'+kanji+'</dd>'+(d.x?'<dt>Fokus</dt><dd>'+esc(d.x)+'</dd>':'')+'</dl>'+
+   '<ul class="tasks">'+t.map((tx,j)=>{const id='d'+n+'-'+j;const on=!!state.done[id];
+     return '<li><label class="'+(on?'t-done':'')+'"><input type="checkbox" id="'+id+'" data-k="'+id+'" '+(on?'checked':'')+'><span>'+esc(tx)+'</span></label></li>';}).join('')+'</ul>'+
+   (links?'<div style="display:flex;flex-direction:column;gap:8px"><span class="eyebrow">Buka materi</span><div class="links">'+links+'</div></div>':'');
+}
+function renderErrors(){
+  const list=state.errors||[];
+  $('errList').innerHTML=list.length?list.map((e,ix)=>'<li><div class="q">'+esc(e.q)+'<small>'+esc(e.date||'')+'</small></div><div class="a">'+esc(e.a)+'</div><button class="x" data-del="'+ix+'">Hapus</button></li>').join('')
+    :'<li class="empty" style="display:block;border:0">Belum ada catatan. Kesalahan pertama dari latihan atau tryout masuk di sini.</li>';
+}
+function renderAll(){$('start').value=state.start;renderStats();renderGrid();renderDay();renderErrors();}
+
+/* ---------- materials & levels (static) ---------- */
+const MATS=[
+ ['Soal resmi JLPT',[
+  ['Workbook resmi (PDF + audio + kunci)','https://www.jlpt.jp/e/samples/sampleindex.html','Gratis','Set 2012 untuk latihan, set 2018 untuk tryout'],
+  ['Contoh soal per tipe','https://www.jlpt.jp/e/samples/forlearners.html','Gratis','Mengenal format soal'],
+  ['JLPT Official Practice Workbook Vol. 1 & 2',null,'Berbayar','Tryout tambahan (Bonjinsha)']]],
+ ['Buku utama (pilih satu)',[
+  ['Minna no Nihongo I & II (terjemahan Indonesia)',null,'Berbayar','Bab 1–25 = N5, 26–50 = N4'],
+  ['Genki I & II',null,'Berbayar','Genki I = N5, Genki II = N4'],
+  ['Irodori (Japan Foundation)','https://www.irodori.jpf.go.jp/','Gratis','Starter + Elementary 1/2, ada audio'],
+  ['Kursus online Irodori','https://www.irodori-online.jpf.go.jp/','Gratis','Video & drama interaktif, perlu akun']]],
+ ['Kosakata & kanji',[
+  ['Anki','https://apps.ankiweb.net/','Gratis','iOS berbayar; aktifkan FSRS'],
+  ['Kaishi 1.5k','https://github.com/donkuri/kaishi','Gratis','Deck kosakata pemula, 35 kartu/hari'],
+  ['Jisho.org','https://jisho.org/','Gratis','Kamus, kanji, filter #jlpt-n5'],
+  ['Kanji N5 (Jisho)','https://jisho.org/search/%23jlpt-n5%20%23kanji','Gratis','Daftar kanji level N5']]],
+ ['Tata bahasa',[
+  ['Tae Kim’s Guide','https://guidetojapanese.org/learn/','Gratis','Penjelasan tambahan'],
+  ['Bunpro','https://bunpro.jp/','Berlangganan','SRS pola tata bahasa per level'],
+  ['YouTube: Nihongo no Mori',null,'Gratis','Penjelasan bab yang sulit']]],
+ ['Listening & membaca',[
+  ['NHK News Web Easy','https://www3.nhk.or.jp/news/easy/','Gratis','Berita mudah + audio, mulai minggu 3'],
+  ['Kana: Tofugu hiragana','https://www.tofugu.com/japanese/learn-hiragana/','Gratis','Hari 1'],
+  ['Kana: Tofugu katakana','https://www.tofugu.com/japanese/learn-katakana/','Gratis','Hari 2'],
+  ['RealKana','https://realkana.com/','Gratis','Kuis kana cepat']]],
+ ['Ujian & pendaftaran',[
+  ['JLPT Indonesia','https://jlptonline.or.id','–','Pendaftaran & lokasi 16 kota'],
+  ['JFT-Basic','https://www.jpf.go.jp/jft-basic/id/about/','–','Alternatif berbasis komputer'],
+  ['Skor & format resmi','https://www.jlpt.jp/e/guideline/testsections.html','–','jlpt.jp']]],
+];
+$('mats').innerHTML=MATS.map(([h,items])=>'<div class="card"><h3>'+h+'</h3><ul class="mat">'+items.map(([n,u,c,note])=>
+  '<li><span class="tag '+(c==='Gratis'?'':'paid')+'">'+c.toUpperCase()+'</span>'+(u?'<a href="'+u+'" target="_blank" rel="noopener">'+esc(n)+'</a>':'<b style="font-weight:500">'+esc(n)+'</b>')+'<span class="muted" style="font-size:.86rem">'+esc(note)+'</span></li>').join('')+'</ul></div>').join('');
+
+const LV=[
+ {lv:'N3',sub:'Menengah',kanji:'± 650',vocab:'± 3.750',pass:'95 / 180',time:'140 menit',
+  study:['Tobira atau Quartet I (buku menengah)','Shin Kanzen Master N3 (per bagian)','Nihongo So-Matome N3 (6 minggu)','Anki: lanjut Core 2k/6k atau kartu dari bacaan sendiri','Bacaan: NHK Easy → artikel NHK biasa','Listening: podcast pemula-menengah + shadowing'],
+  s:'sample2018'},
+ {lv:'N2',sub:'Menengah atas',kanji:'± 1.000',vocab:'± 6.000',pass:'90 / 180',time:'155 menit',
+  study:['Shin Kanzen Master N2 (tata bahasa, bacaan, listening)','Nihongo So-Matome N2','Quartet II atau buku bacaan bertingkat','Anki: kosakata dari berita & novel ringan','Membaca berita NHK setiap hari','Listening: drama/YouTube tanpa subtitle Indonesia'],
+  s:'sample2018'},
+ {lv:'N1',sub:'Mahir',kanji:'± 2.000',vocab:'± 10.000',pass:'100 / 180',time:'165 menit',
+  study:['Shin Kanzen Master N1 (semua bagian)','Nihongo So-Matome N1','Bacaan otentik: editorial koran, esai, novel','Anki: kartu dari bacaan sendiri (sentence mining)','Listening: berita, kuliah, podcast natural','Tryout resmi berwaktu tiap 2 minggu'],
+  s:'sample2018'},
+];
+$('levels').innerHTML=LV.map(v=>{
+  const sp=k=>pdf(v.s,v.lv+k);
+  return '<div class="card lv"><h3><span class="big">'+v.lv+'</span><span>'+v.sub+'</span></h3>'+
+   '<dl class="kv"><dt>Kanji</dt><dd class="mono">'+v.kanji+'</dd><dt>Kosakata</dt><dd class="mono">'+v.vocab+'</dd><dt>Skor lulus</dt><dd class="mono">'+v.pass+' (min. 19/60 per bagian)</dd><dt>Waktu ujian</dt><dd class="mono">'+v.time+'</dd></dl>'+
+   '<span class="eyebrow">Materi yang disarankan</span><ul>'+v.study.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul>'+
+   '<span class="eyebrow">Soal resmi '+v.lv+'</span><div class="links">'+
+   [['Kosakata','V'],['Tata bahasa','G'],['Membaca','R'],['Listening','L'],['Kunci','answer'],['Skrip','script']].map(([t,k])=>'<a href="'+sp(k)+'" target="_blank" rel="noopener">'+t+'</a>').join('')+
+   '<a href="https://www.jlpt.jp/e/samples/sampleindex.html" target="_blank" rel="noopener">Audio</a></div></div>';
+}).join('');
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const c=e.target.closest('.cell'); if(c){selected=+c.dataset.day;renderGrid();renderDay();$('dayCard').scrollIntoView({block:'nearest',behavior:'smooth'});return;}
+  if(e.target.id==='prev'){selected=Math.max(1,(selected??currentDay())-1);renderGrid();renderDay();return;}
+  if(e.target.id==='next'){selected=Math.min(30,(selected??currentDay())+1);renderGrid();renderDay();return;}
+  if(e.target.id==='goToday'){selected=null;renderGrid();renderDay();return;}
+  const del=e.target.closest('[data-del]'); if(del){state.errors.splice(+del.dataset.del,1);renderErrors();persist();return;}
+  const tab=e.target.closest('nav.tabs button'); if(tab){showTab(tab.dataset.tab);}
+});
+document.addEventListener('change',e=>{
+  const k=e.target.dataset&&e.target.dataset.k;
+  if(k){ if(e.target.checked) state.done[k]=true; else delete state.done[k];
+    e.target.closest('label').classList.toggle('t-done',e.target.checked);
+    renderStats();renderGrid();persist();return;}
+  if(e.target.id==='start'&&e.target.value){state.start=e.target.value;selected=null;renderAll();persist();}
+});
+$('errForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const q=$('errQ').value.trim(),a=$('errA').value.trim(); if(!q||!a) return;
+  const n=new Date();
+  state.errors=state.errors||[];
+  state.errors.unshift({q,a,date:n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')});
+  if(state.errors.length>500) state.errors.length=500;
+  $('errQ').value='';$('errA').value='';renderErrors();persist();
+});
+function showTab(name){
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===name?'true':'false'));
+  document.querySelectorAll('section.panel').forEach(s=>s.hidden=s.id!==name);
+  try{history.replaceState(null,'','#'+name);}catch(e){}
+}
+const h=(location.hash||'').slice(1); if(['belajar','materi','kesalahan','ujian','lanjut'].includes(h)) showTab(h);
+
+renderAll();
+
+})();
+</script>
+
+</body>
+</html>
